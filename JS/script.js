@@ -22,6 +22,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 const Nombre = item.Estat;
                 let TempsRestant = item.TempsRestant;
 
+                const savedTempsRestant = localStorage.getItem(`tempsRestant-${ComandaID}`);
+                if (savedTempsRestant !== null) {
+                    TempsRestant = parseInt(savedTempsRestant, 10); 
+                }
+
                 if (!TempsRestant || isNaN(TempsRestant)) {
                     console.warn("Elemento omitido por falta de TempsRestant válido:", item);
                     return;
@@ -38,11 +43,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 comandesDiv.appendChild(platoDiv);
 
-                setInterval(() => {
+                const interval = setInterval(() => {
                     if (TempsRestant > 0) {
                         TempsRestant -= 1;
                         document.getElementById(`temps-${index}`).innerText = formatTime(TempsRestant);
-                    } else if(TempsRestant <= 0) {
+                        localStorage.setItem(`tempsRestant-${ComandaID}`, TempsRestant);
+                    } else if (TempsRestant <= 0) {
                         fetch('https://api.clickeat.cat/comanda/completar', {
                             method: 'POST',
                             headers: {
@@ -60,6 +66,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         platoDiv.innerHTML += `<p>Comanda completada</p>`;
                         platoDiv.remove();
+
+                        localStorage.removeItem(`tempsRestant-${ComandaID}`);
+                        clearInterval(interval);
                     }
                 }, 60000);
             });
