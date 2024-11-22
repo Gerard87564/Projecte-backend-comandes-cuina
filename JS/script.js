@@ -1,12 +1,34 @@
 document.addEventListener("DOMContentLoaded", () => {
-    fetch("https://api.clickeat.cat/comandes")
+    const menuMap = new Map();
+    const completedComandes = JSON.parse(localStorage.getItem('completedComandes')) || [];
+
+    fetch("https://api.clickeat.cat/menus")
         .then(response => {
             if (!response.ok) {
-                throw new Error(`Error en la solicitud: ${response.status}`);
+                throw new Error(`Error al cargar menús: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(menus => {
+            console.log("Datos de menús:", menus);
+
+            menus.forEach(menu => {
+                menuMap.set(menu.MenuID, menu.Nombre);
+            });
+
+            console.log("Contenido de menuMap:", Array.from(menuMap.entries()));
+
+            return fetch("https://api.clickeat.cat/comandes");
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error en la solicitud de comandas: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
+            console.log("Datos de comandas:", data);
+
             const comandesDiv = document.getElementById('comandes');
             if (!comandesDiv) {
                 console.error("No se encontró el contenedor #comandes");
@@ -15,11 +37,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
             comandesDiv.innerHTML = "";
 
-            const filteredData = data.filter(item => item.Estat === "En Proces");
+            const filteredData = data.filter(item => 
+                item.Estat === "En Proces" && !completedComandes.includes(item.ComandaID)
+            );
 
             filteredData.forEach((item, index) => {
+                console.log("Elemento procesado:", item);
+
                 const ComandaID = item.ComandaID;
-                const Nombre = item.Estat;
+                const idmenu = item.MenuID;
+
+                if (!idmenu) {
+                    console.error(`El campo MenuID no está definido en el item:`, item);
+                }
+
+                const menuNombre = menuMap.get(idmenu) || `ID: ${idmenu} desconocido`;
+
                 let TempsRestant = item.TempsRestant;
 
                 const savedTime = localStorage.getItem(`TempsRestant-${ComandaID}`);
@@ -37,9 +70,40 @@ document.addEventListener("DOMContentLoaded", () => {
                 platoDiv.setAttribute('data-menu-id', ComandaID);
 
                 platoDiv.innerHTML = `
-                    <h4>${Nombre}</h4>
+                    <h4>${item.Estat}</h4>
+                    <p class="comandaID">ComandaID: <span id="comanda-${index}">${ComandaID}</span></p>
+                    <p class="menuID">Menú: <span id="menu-${index}">${menuNombre}</span></p>
                     <p class="temps-restant">Tiempo restante: <span id="temps-${index}">${formatTime(TempsRestant)}</span></p>
                 `;
+
+                platoDiv.addEventListener('click', function () {
+                    completedComandes.push(ComandaID);
+                    localStorage.setItem('completedComandes', JSON.stringify(completedComandes));
+
+                    fetch('https://api.clickeat.cat/comanda/completar', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ comandaId: ComandaID })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Error al completar la comanda: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(data.message);
+                        platoDiv.innerHTML += `<p>Comanda completada</p>`;
+                        platoDiv.remove();
+                        clearInterval(interval);
+                        localStorage.removeItem(`TempsRestant-${ComandaID}`);
+                    })
+                    .catch(error => {
+                        console.error("Error al completar la comanda:", error);
+                    });
+                });
 
                 comandesDiv.appendChild(platoDiv);
 
@@ -64,6 +128,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         .catch(error => {
                             console.error("Error al actualizar la comanda:", error);
                         });
+
+                        completedComandes.push(ComandaID);
+                        localStorage.setItem('completedComandes', JSON.stringify(completedComandes));
 
                         platoDiv.innerHTML += `<p>Comanda completada</p>`;
                         platoDiv.remove();
