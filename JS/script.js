@@ -68,13 +68,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 const platoDiv = document.createElement('div');
                 platoDiv.className = 'plato-carta';
                 platoDiv.setAttribute('data-menu-id', ComandaID);
-
-                platoDiv.innerHTML = `
-                    <h4>${item.Estat}</h4>
-                    <p class="comandaID">ComandaID: <span id="comanda-${index}">${ComandaID}</span></p>
-                    <p class="menuID">Menú: <span id="menu-${index}">${menuNombre}</span></p>
-                    <p class="temps-restant">Tiempo restante: <span id="temps-${index}">${formatTime(TempsRestant)}</span></p>
-                `;
+                
+                if (item.Taula!=undefined) {
+                    platoDiv.innerHTML = `
+                        <h4>${item.Estat}</h4>
+                        <p class="comandaID">ComandaID: <span id="comanda-${index}">${ComandaID}</span></p>
+                        <p class="menuID">Menú: <span id="menu-${index}">${menuNombre}</span></p>
+                        <p class="menuID">Taula: <span id="taula-${index}">${item.Taula}</span></p>
+                        <p class="temps-restant">Tiempo restante: <span id="temps-${index}">${formatTime(TempsRestant)}</span></p>
+                    `;       
+                } else {
+                    platoDiv.innerHTML = `
+                        <h4>${item.Estat}</h4>
+                        <p class="comandaID">ComandaID: <span id="comanda-${index}">${ComandaID}</span></p>
+                        <p class="menuID">Menú: <span id="menu-${index}">${menuNombre}</span></p>
+                        <p class="temps-restant">Tiempo restante: <span id="temps-${index}">${formatTime(TempsRestant)}</span></p>
+                    `;  
+                }
 
                 platoDiv.addEventListener('click', function () {
                     completedComandes.push(ComandaID);
