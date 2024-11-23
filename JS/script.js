@@ -53,38 +53,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const menuNombre = menuMap.get(idmenu) || `ID: ${idmenu} desconocido`;
 
-                let TempsRestant = item.TempsRestant;
-
-                const savedTime = localStorage.getItem(`TempsRestant-${ComandaID}`);
-                if (savedTime) {
-                    TempsRestant = parseInt(savedTime, 10);
-                }
-
-                if (isNaN(TempsRestant) || TempsRestant <= 0) {
-                    console.warn("Elemento omitido por falta de TempsRestant válido:", item);
-                    return;
+                let startTime = localStorage.getItem(`startTime-${ComandaID}`);
+                if (!startTime) {
+                    startTime = Date.now();
+                    localStorage.setItem(`startTime-${ComandaID}`, startTime);
+                } else {
+                    startTime = parseInt(startTime, 10); 
                 }
 
                 const platoDiv = document.createElement('div');
                 platoDiv.className = 'plato-carta';
                 platoDiv.setAttribute('data-menu-id', ComandaID);
                 
-                if (item.Taula!=undefined) {
+                if (item.Taula != undefined) {
                     platoDiv.innerHTML = `
                         <h4>${item.Estat}</h4>
                         <p class="comandaID">ComandaID: <span id="comanda-${index}">${ComandaID}</span></p>
                         <p class="menuID">Menú: <span id="menu-${index}">${menuNombre}</span></p>
                         <p class="menuID">Taula: <span id="taula-${index}">${item.Taula}</span></p>
-                        <p class="temps-restant">Tiempo restante: <span id="temps-${index}">${formatTime(TempsRestant)}</span></p>
+                        <p class="temps-transcurregut">Tiempo transcurregut: <span id="temps-${index}">00:00:00</span></p>
                     `;       
                 } else {
                     platoDiv.innerHTML = `
                         <h4>${item.Estat}</h4>
                         <p class="comandaID">ComandaID: <span id="comanda-${index}">${ComandaID}</span></p>
                         <p class="menuID">Menú: <span id="menu-${index}">${menuNombre}</span></p>
-                        <p class="temps-restant">Tiempo restante: <span id="temps-${index}">${formatTime(TempsRestant)}</span></p>
+                        <p class="temps-transcurregut">Tiempo transcurregut: <span id="temps-${index}">00:00:00</span></p>
                     `;  
                 }
+
+                comandesDiv.appendChild(platoDiv);
+
+                const interval = setInterval(() => {
+                    const elapsedTime = Math.floor((Date.now() - startTime) / 1000); 
+                    const formattedTime = formatTime(elapsedTime); 
+
+                    document.getElementById(`temps-${index}`).innerText = formattedTime;
+
+                    localStorage.setItem(`startTime-${ComandaID}`, startTime); 
+                }, 1000); 
 
                 platoDiv.addEventListener('click', function () {
                     completedComandes.push(ComandaID);
@@ -108,47 +115,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         platoDiv.innerHTML += `<p>Comanda completada</p>`;
                         platoDiv.remove();
                         clearInterval(interval);
-                        localStorage.removeItem(`TempsRestant-${ComandaID}`);
+                        localStorage.removeItem(`startTime-${ComandaID}`);
                     })
                     .catch(error => {
                         console.error("Error al completar la comanda:", error);
                     });
                 });
-
-                comandesDiv.appendChild(platoDiv);
-
-                const interval = setInterval(() => {
-                    if (TempsRestant > 0) {
-                        TempsRestant -= 1;
-                        document.getElementById(`temps-${index}`).innerText = formatTime(TempsRestant);
-
-                        localStorage.setItem(`TempsRestant-${ComandaID}`, TempsRestant);
-                    } else if (TempsRestant <= 0) {
-                        fetch('https://api.clickeat.cat/comanda/completar', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ comandaId: ComandaID })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log(data.message);
-                        })
-                        .catch(error => {
-                            console.error("Error al actualizar la comanda:", error);
-                        });
-
-                        completedComandes.push(ComandaID);
-                        localStorage.setItem('completedComandes', JSON.stringify(completedComandes));
-
-                        platoDiv.innerHTML += `<p>Comanda completada</p>`;
-                        platoDiv.remove();
-                        clearInterval(interval);
-
-                        localStorage.removeItem(`TempsRestant-${ComandaID}`);
-                    }
-                }, 60000);
             });
         })
         .catch(error => {
@@ -157,7 +129,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    const hours = Math.floor(seconds / 3600); 
+    const minutes = Math.floor((seconds % 3600) / 60); 
+    const remainingSeconds = seconds % 60; 
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
