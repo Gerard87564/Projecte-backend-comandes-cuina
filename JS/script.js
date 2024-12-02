@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const menuMap = new Map();
     const completedComandes = JSON.parse(localStorage.getItem('completedComandes')) || [];
 
-    fetch("https://api.clickeat.cat/menus")
+    fetch("https://apic.clickeat.cat/menus")
         .then(response => {
             if (!response.ok) {
                 throw new Error(`Error al cargar menús: ${response.status}`);
@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             console.log("Contenido de menuMap:", Array.from(menuMap.entries()));
 
-            return fetch("https://api.clickeat.cat/comandes");
+            return fetch("https://apic.clickeat.cat/comandes");
         })
         .then(response => {
             if (!response.ok) {
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                     localStorage.setItem('completedComandes', JSON.stringify(completedComandes));
                     
-                    fetch('https://api.clickeat.cat/comanda/completar', {
+                    fetch('https://apic.clickeat.cat/comanda/completar', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
